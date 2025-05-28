@@ -1,6 +1,6 @@
 import random
 
-class Boxs:
+class Node:
     def __init__(self,pos:tuple[int,int]):
         self.__y,self.__x = pos
         self.__g = 0
@@ -43,9 +43,10 @@ class Boxs:
     def box_class(self,Class:str):
         self.__box_class = Class
 
-class Grid:
+class GridBox:
     def __init__(self,size:tuple[int,int]):
-        self.__grid = [[Boxs((i,j)) for j in range(size[1])] for i in range(size[0])]
+        self.__grid = [[Node
+        ((i,j)) for j in range(size[1])] for i in range(size[0])]
         self.__bottomLeft = {"y":size[1]-1,"x":0}
         self.__topRight = {"y":0,"x":size[0]-1}
 
@@ -57,20 +58,20 @@ class Grid:
     def TopRight(self) -> tuple[int,int]:
         return self.__topRight
       
-    def getGrid(self,pos) -> Boxs:
+    def getGrid(self,pos) -> Node:
         return self.__grid[pos[0]][pos[1]]
     
-    def showGrid(self):
-        for i in self.__grid:
-            for j in i:
-                print("%5s"%j.box_class,end=" ")
-            print()
-            
-    def showDetailGrid(self):
-        for i in self.__grid:
-            for j in i:
-                print(f"({j.y},{j.x}) g:{j.g} h:{j.h} f:{j.f} perant:{j.perant} class:{j.box_class}",end=" | ")
-            print()
+    def showGrid(self,detail=False):
+        if not detail:
+            for i in self.__grid:
+                for j in i:
+                    print("%5s"%j.box_class,end=" ")
+                print()
+        else:
+            for i in self.__grid:
+                for j in i:
+                    print(f"({j.y},{j.x}) g:{j.g} h:{j.h} f:{j.f} perant:{j.perant} class:{j.box_class}",end=" | ")
+                print()
         print("-" * 20)
 
     def setBoxClass(self,pos:tuple[int,int],Class:str):
@@ -89,9 +90,9 @@ class Grid:
                 if j.box_class == "end":
                     return (j.y,j.x)
 
-class Node:
+class AStar:
     def __init__(self,size:tuple[int,int],end:tuple[int,int],start:tuple[int,int]):
-        self.grid = Grid(size)
+        self.grid = GridBox(size)
         self.grid.setBoxClass(start,"start")
         self.grid.setBoxClass(end,"end")
 
@@ -129,7 +130,6 @@ class Node:
             if self.cur == self.grid.getEndPos:
                 TargetCur = self.grid.getEndPos
                 while TargetCur != self.grid.getStartPos:
-                    \
                     self.finallist.append(TargetCur)
                     TargetCur = self.grid.getGrid(TargetCur).perant
                 self.finallist.append(self.grid.getStartPos)
@@ -148,10 +148,10 @@ class Node:
 
     # grid.showDetailGrid()
 
-class TestNode:
-    def __init__(self):
+class TestAStar:
+    def __init__(self,size=5):
         self.ranPos = []
-        self.size = 5
+        self.size = size
     def randomPos(self,start,end) -> int:
         ran = (random.randint(start,end),random.randint(start,end))
         while True:
@@ -167,7 +167,7 @@ class TestNode:
             for i in range(self.size+2):
                 self.randomPos(0,self.size-1)
             print(self.ranPos)
-            node = Node((self.size,self.size),self.ranPos[0],self.ranPos[1])
+            node = AStar((self.size,self.size),self.ranPos[0],self.ranPos[1])
             for i in self.ranPos[2:]:
                 node.setWall(i)
             node.grid.showGrid()
