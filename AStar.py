@@ -47,8 +47,8 @@ class GridBox:
     def __init__(self,size:tuple[int,int]):
         self.__grid = [[Node
         ((i,j)) for j in range(size[1])] for i in range(size[0])]
-        self.__bottomLeft = {"y":size[1]-1,"x":0}
-        self.__topRight = {"y":0,"x":size[0]-1}
+        self.__bottomLeft = {"y":size[0]-1,"x":0}
+        self.__topRight = {"y":0,"x":size[1]-1}
 
     @property
     def BottomLeft(self) -> tuple[int,int]:
@@ -93,6 +93,7 @@ class GridBox:
 class AStar:
     def __init__(self,size:tuple[int,int],end:tuple[int,int],start:tuple[int,int]):
         self.grid = GridBox(size)
+        self.size = tuple(reversed(size))
         self.grid.setBoxClass(start,"start")
         self.grid.setBoxClass(end,"end")
 
@@ -100,7 +101,7 @@ class AStar:
         self.closelist = []
         self.finallist = []
         self.cur = self.openlist[0]
-
+    
     def setWall(self,pos:tuple[int,int]):
         self.grid.setBoxClass(pos,"wall")
         
