@@ -44,9 +44,9 @@ class Node:
     @box_class.setter
     def box_class(self,Class:str):
         self.__box_class = Class
-
 class GridBox:
     def __init__(self,size:tuple[int,int],scale:int):
+        self.scale = scale
         self.__grid = [[Node((i,j),scale) for j in range(size[1])] for i in range(size[0])]
         self.__bottomLeft = {"y":size[0]-1,"x":0}
         self.__topRight = {"y":0,"x":size[1]-1}
@@ -75,6 +75,18 @@ class GridBox:
             print()
         print("-" * 20)
 
+    def drawGrid(self,screen):
+        for i in self.__grid:
+            for j in i:
+                if j.box_class == "wall":
+                    pygame.draw.rect(screen,(255,255,0),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
+                elif j.box_class == "start":
+                    pygame.draw.rect(screen,(255,0,0),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
+                elif j.box_class == "end":
+                    pygame.draw.rect(screen,(0,0,255),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
+                else:
+                    pygame.draw.rect(screen,(255,255,255),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale),1)
+
     def setBoxClass(self,pos:tuple[int,int],Class:str):
         self.__grid[pos[0]][pos[1]].box_class = Class
 
@@ -90,10 +102,9 @@ class GridBox:
             for j in i:
                 if j.box_class == "end":
                     return (j.y,j.x)
-
 class AStar:
-    def __init__(self,size:tuple[int,int],end:tuple[int,int],start:tuple[int,int],scale:int,diagonal=False):
-        self.grid = GridBox(size,scale)
+    def __init__(self,start,end,size,scale,grid:GridBox = None,diagonal=False):
+        self.grid = grid if grid else GridBox(size,scale)
         self.size = sorted(size,reverse=True)
         self.grid.setBoxClass(start,"start")
         self.grid.setBoxClass(end,"end")
@@ -115,6 +126,10 @@ class AStar:
         pos = (y,x)
         # print(self.openlist)
         if x >= self.grid.BottomLeft["x"] and x <= self.grid.TopRight["x"] and y <= self.grid.BottomLeft["y"] and y >= self.grid.TopRight["y"] and self.grid.getGrid(pos).box_class != "wall" and pos not in self.closelist:
+            if self.diagonal:
+                if self.grid.getGrid((y,self.grid.getGrid(self.cur).x)).box_class == "wall" and self.grid.getGrid((self.grid.getGrid(self.cur).y,x)).box_class == "wall":
+                    return
+            
             NegiborNode = pos
             MoveCost = self.grid.getGrid(self.cur).g + (10 if self.grid.getGrid(self.cur).y - y == 0 or self.grid.getGrid(self.cur).x - x == 0 else 14)
 
@@ -125,6 +140,12 @@ class AStar:
                 self.openlist.append(NegiborNode)
 
     def findNode(self):
+        # Reset lists before each search
+        self.openlist = [self.grid.getStartPos]
+        self.closelist = []
+        self.finallist = []
+        self.cur = self.openlist[0]
+        
         try:
             while self.openlist:
                 self.cur = self.openlist[0]
@@ -141,7 +162,7 @@ class AStar:
                         self.finallist.append(TargetCur)
                         TargetCur = self.grid.getGrid(TargetCur).perant
                     self.finallist.append(self.grid.getStartPos)
-                    self.finallist.reverse()
+                    sorted(self.finallist,reverse=True)
                     # for i in self.finallist:
                     #     print(i,end=" -> ")
                     # print("end")
@@ -160,7 +181,6 @@ class AStar:
         except:
             print(f"{self.cur} -> {self.grid.getEndPos} 경로 없음")
             pass
-
 class RandomPos:
     def __init__(self, size:tuple[int,int],num=5,start=None,end=None):
         self.__yMax,self.__xMax = size
@@ -169,39 +189,17 @@ class RandomPos:
             self.__ranPos.append(start)
         if end:
             self.__ranPos.append(end)
-        for _ in range(num):
+        for _ in range(num-len(self.__ranPos)):
             ran = (random.randint(0,self.__yMax-1),random.randint(0,self.__xMax-1))
             while ran in self.__ranPos:
                 ran = (random.randint(0,self.__yMax-1),random.randint(0,self.__xMax-1))
             self.__ranPos.append(ran)
         
-    def getStartEnd(self):
+    def getStartEndWalls(self):
         return self.__ranPos[0], self.__ranPos[1], self.__ranPos[2:]
-class GUIAStar(AStar):
-    def __init__(self,size:tuple[int,int],start:tuple[int,int],end:tuple[int,int],scale:int,diagonal=False):
-        super().__init__(size, start, end,scale,diagonal)
-        self.scale = scale
-    def drawNode(self,screen,nodelist):
-        try:
-            for i in range(len(nodelist)-1):
-                pygame.draw.line(screen,(0,255,0),self.grid.getGrid(nodelist[i]).GUICenter,self.grid.getGrid(nodelist[i+1]).GUICenter,5)
-        except:
-            pass
-
-    def drawGrid(self,screen):
-        for i in self.grid.getAllGrid():
-            for j in i:
-                if j.box_class == "wall":
-                    pygame.draw.rect(screen,(255,0,0),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
-                elif j.box_class == "start":
-                    pygame.draw.rect(screen,(0,255,0),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
-                elif j.box_class == "end":
-                    pygame.draw.rect(screen,(0,0,255),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale))
-                else:
-                    pygame.draw.rect(screen,(255,255,255),pygame.Rect(j.GUIPos[0],j.GUIPos[1],self.scale,self.scale),1)
 
 def test(diagonal=False):
-    start,end,walls = RandomPos((3,3),5).getStartEnd()
+    start,end,walls = RandomPos((3,3),5).getStartEndWalls()
     node = AStar((3,3), end, start, 100,diagonal)
     for i in walls:
         node.setWall(i)
@@ -210,10 +208,12 @@ def test(diagonal=False):
     print("Final Path:",nodelist) 
     print("-" * 20)
 
-def smaple_GUIAStar(screen,size,scale,WallCount,diagonal=False):
-    start,end,wall = RandomPos(size,WallCount).getStartEnd()
-    gu = GUIAStar(size, end, start, scale, diagonal)
-    for i in wall:
-        gu.setWall(i)
-    gu.drawGrid(screen)
-    gu.drawNode(screen, gu.findNode())
+class Entity(AStar):
+    def __init__(self,grid:GridBox,start:tuple[int,int],end:tuple[int,int],size:tuple[int,int],scale:int):
+        super().__init__(start,end,size,scale,grid)
+        self.__path = self.findNode()
+        
+    def drawNode(self,screen,color=(0,255,0)):
+        if self.__path:
+            centerNode = list(map(lambda x: self.grid.getGrid(x).GUICenter,self.__path))
+            pygame.draw.lines(screen,color,False,centerNode,5)
