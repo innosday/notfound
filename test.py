@@ -45,4 +45,19 @@
 #         print(a.findNode())
 # except KeyboardInterrupt:
 #     pass
-dlszmdtq
+
+A = [1,2,3,4,5]
+class test:
+    def __init__(self,arr):
+        self.arr:list = arr
+    
+    def add(self,num):
+        self.arr.append(num)
+    
+    def remove(self):
+        self.arr.pop(0)
+
+print(A)
+b = test(A)
+b.add(6)
+print(A)
